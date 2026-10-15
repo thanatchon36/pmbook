@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     tier2: bool = False  # Checkpoint R gate; see MISSION §1.4 and §9
     data_dir: Path = Path("data")
+    salt_path: Path = Path("secrets/pseudonym.salt")  # never committed (.gitignore)
     polygon_rpc_urls: tuple[str, ...] = POLYGON_RPC_URLS
     http_timeout_s: float = 30.0
     http_max_retries: int = 6

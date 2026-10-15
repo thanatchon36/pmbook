@@ -23,5 +23,19 @@ Markets referencing Thailand are excluded at ingestion (D-030) and appear in no 
 ## Privacy
 Wallet addresses are pseudonymised with HMAC-SHA256 and a local secret salt that is never committed (METHODS §5). Only aggregates are reported.
 
+## Rebuilding
+
+```bash
+uv run pmbook backfill identity   # 2022-09-26 → yesterday, strictly in time order (filter runs here)
+uv run pmbook backfill fills      # 2025-10-01 → yesterday; each day waits for identity
+uv run pmbook backfill binance    # 2025-10-01 → yesterday
+uv run pmbook validate --audit-per-day 20
+```
+
+All sources are keyless and public: Polygon logs via general-purpose public RPC (RECON §4b) and the Binance public market-data mirror. No venue-hosted endpoint is used (Checkpoint R is deferred).
+
 ## Known limitations
-_TBD in Phases 1–2._
+- Question text exists on chain only for UMA- and NegRisk-adapter markets. Conditions without on-chain text are held back from the panel (D-030); `pmbook validate` reports the share.
+- Fills are legs of `OrderFilled`. Matches spanning maker legs on complementary tokens need the mapping `p' = 1 − p` (METHODS §2.2) at panel time.
+- V1-era fees (until 2026-04-28) are denominated in the received asset and follow a different formula before 2026-03-31 (METHODS §2.3).
+- No order-book data (Tier 2). Spreads are estimated from trades (METHODS §4).

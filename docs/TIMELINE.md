@@ -43,6 +43,6 @@ Verified. Makers earn daily rewards for resting orders inside a per-market `max_
 - [LR] Liquidity Rewards, https://docs.polymarket.com/programs/liquidity-rewards.md
 - [MD] Market details (fee schedule fields), https://docs.polymarket.com/market-data/market-details.md
 - [CON] Contracts, https://docs.polymarket.com/resources/contracts.md
-- [API] Live probes of `gamma-api.polymarket.com/markets/keyset` and `clob.polymarket.com/clob-markets/{cid}`, 2026-10-15 (see RECON.md)
+- [API] Live probes of `gamma-api.polymarket.com/markets/keyset` and `clob.polymarket.com/clob-markets/{cid}`, 2026-10-15 (see RECON.md). *Tier note:* these were made before Checkpoint R existed (D-025). [API] is corroborating background only. Every dated row also has a documentation source, and fee status in the analysis comes from chain [TX].
 - [TX] Polygon transactions decoded in METHODS §2
 - Secondary (context only): PokerNews, "Polymarket blunder prompts quick U-turn on new fees", 2026-04-01, https://www.pokernews.com/prediction-markets/news/2026/04/polymarket-blunder-prompts-quick-u-turn-new-polymarket-fees-50947.htm

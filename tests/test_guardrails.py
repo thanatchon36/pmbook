@@ -17,18 +17,27 @@ FORBIDDEN = [
     r"eth_account|web3\.eth\.account|Account\.from_key",
     r"create_or_derive_api_creds|derive_api_key|/auth/api-key",
     r"POLY_API_KEY|POLY_PASSPHRASE|POLY_SIGNATURE",
-    r"\.post\(|\.put\(|\.delete\(|\.patch\(",
+    r"\.post\(",
+    r"\.put\(|\.delete\(|\.patch\(",
     r"method\s*=\s*['\"](POST|PUT|DELETE|PATCH)['\"]",
     r"['\"]/orders?['\"]",
     r"eth_sendRawTransaction|eth_sendTransaction",
 ]
 
 
+# JSON-RPC requires POST; the RPC client restricts itself to a read-only method allowlist
+# (tests/test_rpc.py). Nothing else may POST.
+POST_ALLOWED = {Path("onchain/rpc.py"): r"\.post\("}
+
+
 def test_no_order_or_signing_code() -> None:
     offenders: list[str] = []
     for path in SRC.rglob("*.py"):
         text = path.read_text(encoding="utf-8")
+        allowed = POST_ALLOWED.get(path.relative_to(SRC))
         for pattern in FORBIDDEN:
+            if pattern == allowed:
+                continue
             for m in re.finditer(pattern, text, flags=re.IGNORECASE):
                 line = text.count("\n", 0, m.start()) + 1
                 offenders.append(f"{path.relative_to(SRC)}:{line}: {m.group(0)!r}")

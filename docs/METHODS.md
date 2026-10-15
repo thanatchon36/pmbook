@@ -78,6 +78,28 @@ Wallet, side, size and price agree on all four. The Data API has **no fee and no
 - maker and taker legs balance;
 - V2 `fee` equals `FeeCharged.amount`.
 
+### 2.5 Tier 1 pipeline and decoding audit (Phase 1)
+
+**Crawls** (`pmbook backfill identity|fills|binance`; D-032 to D-037):
+
+1. **identity:** all-address `eth_getLogs` for `TokenRegistered`, CTF `ConditionPreparation`/`ConditionResolution`, UMA `QuestionInitialized`/`QuestionResolved` and NegRisk `QuestionPrepared`/`MarketPrepared`. It runs from 2022-09-26 strictly in time order. The home-jurisdiction filter runs on the question text here.
+2. **fills:** `OrderFilled` (V1 and V2 topics) from the five venue exchanges (D-031), from 2025-10-01. One row per leg, with addresses pseudonymised at decode time.
+3. **binance:** public 1-minute klines.
+
+Storage is Parquet (zstd) under `dataset=<name>/date=YYYY-MM-DD/`, with schema version and `venue` in every file. Raw parts are written atomically and never modified. Crawls are resumable from per-day manifests, and orphaned parts from an interrupted flush are removed on resume.
+
+**Decoding audit** (`pmbook validate --audit-per-day N`): for N random stored transactions per complete day, the receipt is re-fetched and checked:
+- (a) the stored legs equal the receipt's venue `OrderFilled` logs, field by field;
+- (b) taker legs = `OrdersMatched` events;
+- (c) for V2, the sum of taker-leg fees = the sum of `FeeCharged`.
+
+Per-day integrity checks:
+- unique (tx, log_index);
+- at least one taker leg per transaction;
+- exchange generation consistent with the 2026-04-28 migration;
+- price in (0, 1];
+- fee ≥ 0.
+
 ## 3. Outcome definitions
 
 _Phase 3, from PREREGISTRATION.md._
