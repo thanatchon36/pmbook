@@ -22,7 +22,7 @@ uv run pmbook --help
 
 ## Data and terms
 
-pmbook uses only documented, unauthenticated public endpoints and public chain data, sends a descriptive User-Agent and backs off on 429/5xx. Polymarket's Terms of Use restrict redistribution of its data, so this repo does not ship raw data. See [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-004) and [`docs/RECON.md`](docs/RECON.md).
+pmbook uses only documented, unauthenticated public endpoints and public chain data, sends a descriptive User-Agent and backs off on 429/5xx. Polymarket's Terms of Use restrict redistribution of its data, so this project releases code and the paper only, not data. Rebuild locally with `pmbook`. See [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-004) and [`docs/RECON.md`](docs/RECON.md).
 
 ## Citation
 
