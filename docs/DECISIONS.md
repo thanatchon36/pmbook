@@ -1,0 +1,45 @@
+# Decision log
+
+Format: **ID — date — phase — decision.** *Why:* rationale. *Rejected:* alternatives. Newest at the bottom.
+
+- **D-001 — 2026-10-15 — P0 — Run all phases on Opus 5.5** (the session model), not the per-phase model/effort suggestions in MISSION §8. *Why:* one autonomous session; quality bar is unchanged. *Rejected:* switching models mid-session (the user can still do so with `/model`).
+- **D-002 — 2026-10-15 — P0 — Repo at `~/github/pmbook`, public GitHub repo `thanatchon36/pmbook`** created in Phase 0 so CI can run, following the sibling research repos. The user approved this in the Phase 0 plan. *Rejected:* a private repo (the mission is open source; PyPI/HF/LinkedIn stay behind Checkpoint B).
+- **D-003 — 2026-10-15 — P0 — Package name `pmbook`.** It is free on PyPI (`pmbook`, `bookprob`, `oddsdepth` and `polystruct` all return 404) and on HF (`thanatchon36/pmbook-polymarket` not taken). GitHub has unrelated `PMBook` repos, so there is no clash under this account. *Rejected:* the alternates, which are unnecessary.
+- **D-004 — 2026-10-15 — P0 — Terms decision: raw-data redistribution is NOT permitted; no raw dataset release.** Polymarket ToU (effective 2026-08-11) §4 forbids redistributing "Data" (raw, derived, aggregated or anonymised, explicitly including on-chain) to Capital Market Clients or market-data distributors. It also forbids those parties from using it, and grants only a personal, non-sublicensable licence. A public dataset cannot exclude such recipients, and publishing one arguably makes pmbook a market-data distributor. Consequences:
+  1. No public raw Parquet or Hugging Face dataset of Polymarket API data.
+  2. The release is code, rebuild scripts (`pmbook backfill`/`record`), the paper's tables and figures, and a dataset card describing how to rebuild.
+  3. Whether even the **derived market-day panel** may be released is a legal-risk call for the user. It goes to **Checkpoint C**, and the default until answered is **not to release it**.
+
+  *Why:* the guardrail says unclear terms are restrictive. *Rejected:* "on-chain data is public, so it is fine". The ToU names on-chain data explicitly, and the guardrail requires following the terms.
+- **D-005 — 2026-10-15 — P0 — Data access stays within the ToU.** pmbook does no HTML scraping. It uses only documented public APIs, which Polymarket's docs present as a resource for "builders, researches, and analysts". It stays far below the documented Cloudflare limits, identifies itself in the User-Agent, and is non-commercial research by an independent individual (not a Capital Market Client). Trading is restricted for some jurisdictions (including Thailand); pmbook never trades, and Content Features are permitted everywhere. *Rejected:* none; noted for transparency.
+- **D-006 — 2026-10-15 — P0 — Timeline corrections vs MISSION §2** (detail in TIMELINE.md):
+  - January 2026 crypto fees covered only 15-min (and, from 12 Feb, 5-min) crypto up/down markets.
+  - 18 Feb 2026 sports fees covered only NCAAB and Serie A.
+  - Other crypto markets were treated from 6 Mar, and only those created after 6 Mar.
+  - The "April 2026" fee-formula correction was on 31 Mar 2026.
+  - New concurrent changes: the 28 Apr 2026 exchange/collateral migration (orders wiped), the 28 May 2026 Taker Rebate Program, and the 10 Jul 2026 sports rate change 0.03 → 0.05 with rebate 25 % → 15 %.
+
+  These force design changes to §2/§4, so **Checkpoint E** applies (see D-013).
+- **D-007 — 2026-10-15 — P0 — Historical fee status comes from chain, never from Gamma.** Gamma `feesEnabled`/`feeSchedule`/`feeType` are current-state snapshots, and pre-fee markets show `null`. Gamma `feeType` is kept as a category label. *Rejected:* inferring treatment dates from Gamma.
+- **D-008 — 2026-10-15 — P0 — Backfill must decode both exchange generations:** V1 (2 contracts, until 2026-04-28) and V2 (3 contracts: CTF V2, NegRisk V2, Protocol V2 `ExchangeV3`), with different ABIs and fee units (METHODS §2). *Rejected:* V1-only decoding, which would lose everything after 28 Apr.
+- **D-009 — 2026-10-15 — P0 — Price history:** use the CLOB `/prices-history?fidelity=1` route for the backfill (1-minute history verified back to 2025-10-01). Data API `/v2/prices-history` returned empty for the same token and window. CLOB is now "legacy", but v1 data routes are frozen rather than removed. Re-test v2 in Phase 2. *Rejected:* v2 only, which leaves gaps.
+- **D-010 — 2026-10-15 — P0 — Kalshi stream:** in scope as **optional**, implemented only in Phase 2 if time allows. The public markets endpoint needs no auth. *Why:* RQ5 cross-venue substitution is secondary; within-Polymarket substitution to geopolitics is primary.
+- **D-011 — 2026-10-15 — P0 — WS subscription sharding:** no per-connection asset cap is documented (the 100-token cap was removed 2025-05-28). Use ≤ 500 assets per connection anyway to bound the blast radius of a disconnect. Gap detection uses REST snapshot reconciliation because the market channel has no sequence numbers. *Rejected:* a single giant connection.
+- **D-012 — 2026-10-15 — P0 — Polygon RPC: `polygon.drpc.org` (keyless) is the only free archive-capable endpoint found.** publicnode needs a token for archive data, polygon-rpc.com is disabled, and ankr needs a key. The keyless dRPC accepts ≤ 100-block `eth_getLogs` ranges. The full backfill window needs ≥ 184 k such requests and roughly 1–2.5 B logs (RECON §4). That is beyond what a keyless public endpoint can reasonably serve → **Checkpoint D** raised early (formally a Phase 2 checkpoint). No account was created anywhere. Options are in the Checkpoint D/E report; recommended: D-014.
+- **D-013 — 2026-10-15 — P0 — Proposed design changes (pending Checkpoint E):**
+  1. **Treatment is defined at market level** from on-chain realised fees (first day a market's taker legs carry fee > 0), not category × date. The main cohort is 30 Mar 2026; early cohorts are NCAAB/Serie A (18 Feb) and new crypto markets (≥ 6 Mar); geopolitics is never treated.
+  2. **Add the 10 Jul 2026 sports rate change (0.03 → 0.05) as a second, dose-response experiment** for RQ1/RQ2.
+  3. **The fee-intensity variable** for the triple-diff is the realised on-chain fee/notional, with the `p(1−p)` quintile as the pre-specified instrument/proxy. The V1-era formula (≤ 31 Mar) was not ∝ p(1−p).
+  4. **The main event window is truncated to [−8w, +4w)** around 30 Mar, because the 28 Apr migration (orders wiped, new collateral) hits all markets including controls. ±8w is kept as a robustness check with a migration indicator.
+  5. **Taker rebates (28 May) are added to the concurrent-changes list.**
+  6. **The short-duration crypto exclusion stays**, so the January 2026 "crypto" date drops out of the main analysis.
+- **D-014 — 2026-10-15 — P0 — Recommended backfill architecture (pending Checkpoint D):** use a **hybrid** approach.
+  - (a) **Data API v2 `/v2/trades?condition=…&taker_only=false`** per market for the analysis universe (excluding short-duration crypto). It has keyset paging with no depth cap and returns taker and maker wallets, side, size, price and tx hash.
+  - (b) **On-chain receipts** (`eth_getTransactionReceipt`) for a stratified random sample of those tx hashes, per market-week. This recovers fees, verifies treatment dates and sizes the V1 maker-fee anomaly, and makes the reconciliation a built-in check.
+  - (c) **Full `eth_getLogs` decoding only for short windows** (e.g. ±2 days around each rollout date), to audit (a).
+
+  This keeps the on-chain record as ground truth while cutting RPC load by roughly 3 orders of magnitude. *Rejected:* a full-window `eth_getLogs` crawl on a keyless endpoint (load and etiquette); signing up for an RPC key (the user's call, and Guardrail 6).
+- **D-015 — 2026-10-15 — P0 — Phase 0 dependencies kept minimal** (httpx, typer, pydantic-settings, structlog). pyarrow, polars, duckdb, websockets and prometheus-client are added in Phase 1 when first used. *Rejected:* declaring unused deps now.
+- **D-016 — 2026-10-15 — P0 — PDF engine:** `tectonic` is not installed locally. Phase 4 will install it in CI (or use pandoc + a TeX engine from the runner). *Rejected:* deciding now.
+- **D-017 — 2026-10-15 — P0 — `mypy --strict` applies to the whole package**, which is stricter than MISSION's four packages. *Why:* cheap at this size; relax per module only if a third-party stub forces it.
+- **D-018 — 2026-10-15 — P0 — Guardrail enforcement test** (`tests/test_guardrails.py`) scans `src/pmbook` for signing, key, credential and order-posting markers, and for non-GET HTTP verbs. The HTTP client exposes GET only.

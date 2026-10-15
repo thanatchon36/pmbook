@@ -1,0 +1,21 @@
+# data never committed (raw partitions, caches, recon dumps)
+data/
+*.parquet
+*.jsonl.gz
+# secrets: pseudonymization salt, env files
+.env
+*.salt
+secrets/
+# python
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/

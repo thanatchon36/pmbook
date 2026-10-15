@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use pmbook, please cite it as below."
+title: "pmbook: a read-only research toolkit for prediction-market order books and fills"
+authors:
+  - family-names: Chongmankhong
+    given-names: Thanatchon
+version: 0.0.1
+license: Apache-2.0
+repository-code: "https://github.com/thanatchon36/pmbook"
