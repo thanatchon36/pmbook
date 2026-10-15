@@ -116,10 +116,41 @@ def backfill_binance(start: str | None = _START, end: str | None = _END) -> None
     typer.echo("binance: " + ", ".join(f"{s} {n:,} rows" for s, n in written.items()))
 
 
-@app.command()
-def labels() -> None:
-    """Classify questions into fee categories and report validation accuracy."""
-    _not_yet(2)
+labels_app = typer.Typer(
+    help="Classify questions into fee categories and report validation accuracy.",
+    no_args_is_help=True,
+)
+app.add_typer(labels_app, name="labels")
+
+
+@labels_app.command("build")
+def labels_build(
+    silver: bool = typer.Option(True, help="Also derive fee-rate silver labels from fills."),
+) -> None:
+    """Market identity, rule-based categories, silver labels and the fee timeline."""
+    from pmbook.labels import build
+
+    counts = build.build(Settings().data_dir, with_silver=silver)
+    typer.echo("labels: " + ", ".join(f"{k} {v:,}" for k, v in counts.items()))
+
+
+@labels_app.command("sample")
+def labels_sample(n: int = typer.Option(300, help="Markets to sample.")) -> None:
+    """Stratified sample of traded markets for hand labelling."""
+    from pmbook.labels import build
+
+    typer.echo(f"sample: {build.sample(Settings().data_dir, n)}")
+
+
+@labels_app.command("evaluate")
+def labels_evaluate(out: Path | None = _OUT) -> None:
+    """Accuracy and confusion matrices against silver and hand labels."""
+    from pmbook.labels import build
+
+    text = "\n".join(build.evaluate(Settings().data_dir))
+    if out is not None:
+        out.write_text(text)
+    typer.echo(text)
 
 
 @app.command()

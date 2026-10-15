@@ -6,13 +6,13 @@ from pmbook.cli import app
 
 runner = CliRunner()
 
-COMMANDS = ["labels", "panel", "analyze", "paper"]
+COMMANDS = ["panel", "analyze", "paper"]
 
 
 def test_help_lists_all_commands() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for cmd in [*COMMANDS, "backfill", "validate", "record"]:
+    for cmd in [*COMMANDS, "backfill", "labels", "validate", "record"]:
         assert cmd in result.output
 
 

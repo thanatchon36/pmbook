@@ -6,6 +6,27 @@
 
 Tier 1 only (D-026). Fills come from a full `eth_getLogs` crawl of the exchange contracts over keyless public RPC (RECON §4b). Market identity and question text come from on-chain `TokenRegistered`, CTF and UMA adapter events (RECON §7). Coverage reports: Phase 1.
 
+### 1.3 Market identity
+
+One row per *venue condition*, meaning a condition whose outcome tokens are registered on a venue exchange (D-038). Its question text is found by one of three paths:
+
+- **UMA path:** the condition's oracle is a UMA adapter. Text comes from the adapter's `QuestionInitialized` (question id match, same emitter).
+- **NegRisk path:** the oracle is the NegRisk adapter. The outcome question comes from `QuestionPrepared` and the event title from `MarketPrepared`.
+- **No text:** the short-crypto resolver (D-039).
+
+From the ancillary data only `title`, `description` (truncated to 1,500 characters) and the event title are kept. The resolution payout map and the initializer address are dropped. Most ancillary data is `key: value` text; some 2025 NegRisk data is JSON, and both forms are parsed. Code: `pmbook.labels.markets`.
+
+### 1.4 Category labels and their validation
+
+**Classifier.** `pmbook.labels.categories` maps each market's title (and event title; the description is a tie-breaker) to one of the eleven Fee Structure V2 categories. It uses ordered regular-expression rules: the first match wins and the rule name is stored. Short-window crypto up/down markets are flagged `short_crypto` and handled separately in the analysis (MISSION §3.3).
+
+**Two validation sources:**
+
+1. **Fee-rate silver labels** (`pmbook.labels.feerates`) are the venue's own assignment, revealed by on-chain fees. The implied taker rate `fee / (shares × p(1−p))` of each market's taker legs at 0.1 ≤ p ≤ 0.9, between 2026-03-31 and 2026-07-09, is mapped to the nearest rate group (r00/r03/r04/r05/r07; ±0.004). A label is assigned with ≥ 5 legs and ≥ 90 % agreement. Silver labels identify rate groups, not categories: r04 and r05 each pool four categories, and r00 pools geopolitics with fee-disabled markets. Before 31 Mar the V1 encoding charges a flat `0.10 × min(p, 1−p) × shares` in every treated category (verified on 2026-03-23, D-041), so pre-fix fees reveal only *whether* a market was treated.
+2. **Hand-labelled sample:** 300 markets, stratified by predicted category (floor 15 per category), drawn from markets created since 2025-10-01 that have question text (seed 20261015). **The annotator is an AI model (Claude Opus 5.5), not the author.** It labelled from the titles alone, without seeing the predictions. Eight items are flagged as ambiguous between two categories (D-042).
+
+**Protocol.** Rule set v1 was frozen before the hand labels were compared with it. The 300-item sample is a held-out test set. Later rule changes are developed on a separate dev sample and on the silver labels, and are re-tested on a fresh held-out sample. Accuracy, per-class precision and recall, and confusion matrices are produced by `pmbook labels evaluate`. The analysis re-runs on the high-confidence subsample (markets whose rule label agrees with the silver group), as MISSION §4 requires.
+
 ## 2. Decoding exchange fills from Polygon logs
 
 ### 2.1 Event shapes
