@@ -14,9 +14,10 @@ from typing import Any
 import httpx
 import structlog
 
-from pmbook.config import USER_AGENT, Settings
+from pmbook.config import USER_AGENT, Settings, Tier2DisabledError, is_venue_host
 
 log = structlog.get_logger(__name__)
+
 
 RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 
@@ -60,6 +61,8 @@ class PublicClient:
     def get_json(self, url: str, params: Mapping[str, Any] | None = None) -> Any:
         """GET ``url`` and decode JSON, retrying transient failures."""
         s = self.settings
+        if is_venue_host(httpx.URL(url).host) and not s.tier2:
+            raise Tier2DisabledError(f"{url} is venue-hosted (Tier 2); requires PMBOOK_TIER2=1")
         for attempt in range(s.http_max_retries + 1):
             try:
                 resp = self._client.get(url, params=params)

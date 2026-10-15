@@ -1,11 +1,13 @@
-"""Command-line entry point: ``pmbook record | backfill | validate | panel | analyze | paper``."""
+"""CLI entry point: ``pmbook backfill | labels | validate | panel | analyze | paper | record``."""
 
 import typer
 
 from pmbook import __version__
+from pmbook.config import Settings
 
 app = typer.Typer(
-    help="Read-only Polymarket order-book research toolkit. Research only: never places orders.",
+    help="Prediction-market microstructure research toolkit. Research only: reads public data, "
+    "never places orders.",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -32,20 +34,20 @@ def main(
 
 
 @app.command()
-def record() -> None:
-    """Run the long-lived recorder (Gamma metadata, CLOB books, WS deltas)."""
+def backfill() -> None:
+    """Backfill on-chain fills, conditions and questions (Tier 1) and reference data."""
     _not_yet(1)
 
 
 @app.command()
-def backfill() -> None:
-    """Backfill on-chain fills, price history and reference data."""
+def labels() -> None:
+    """Classify questions into fee categories and report validation accuracy."""
     _not_yet(2)
 
 
 @app.command()
 def validate() -> None:
-    """Integrity and coverage reports for recorded partitions."""
+    """Integrity and coverage reports for stored partitions."""
     _not_yet(1)
 
 
@@ -65,3 +67,14 @@ def analyze() -> None:
 def paper() -> None:
     """Build the paper from analysis outputs."""
     _not_yet(4)
+
+
+@app.command()
+def record() -> None:
+    """Tier 2 L2 recorder (venue-hosted endpoints; requires PMBOOK_TIER2=1 after Checkpoint R)."""
+    if not Settings().tier2:
+        typer.echo(
+            "record is Tier 2: set PMBOOK_TIER2=1 only after Checkpoint R (MISSION §9).", err=True
+        )
+        raise typer.Exit(code=3)
+    _not_yet(5)

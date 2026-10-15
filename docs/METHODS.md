@@ -4,7 +4,7 @@
 
 ## 1. Data sources and coverage
 
-_Phase 1–2._
+Tier 1 only (D-026). Fills come from a full `eth_getLogs` crawl of the exchange contracts over keyless public RPC (RECON §4b). Market identity and question text come from on-chain `TokenRegistered`, CTF and UMA adapter events (RECON §7). Coverage reports: Phase 1.
 
 ## 2. Decoding exchange fills from Polygon logs
 
@@ -71,7 +71,12 @@ The taker leg was matched to Data API `/v2/trades?user=<taker>&condition=<cid>` 
 | `0xfd906055…19ea` | 2026-04-29 | V2 | ETH up/down 5-min, "Up" | BUY 7.045452 @ 0.66, fee 0.11383 | BUY 7.045452 @ 0.66 | ✓ |
 | `0x1fd6d227…1111` | 2026-10-14 | V2 | BTC up/down 5-min, "Up" | BUY 100 @ 0.37, fee 1.6317 | BUY 100 @ 0.37 | ✓ |
 
-Wallet, side, size and price agree on all four. The Data API has **no fee and no log index**, so fees come only from chain. Full ≥ 99 % reconciliation on a random sample is a Phase 2 deliverable. Decoder used: `scripts/recon/decode.py`.
+Wallet, side, size and price agree on all four. The Data API has **no fee and no log index**, so fees come only from chain. Decoder used: `scripts/recon/decode.py`.
+
+*Tier note:* this cross-check was done in the original Phase 0, before Checkpoint R existed (D-025). Under the revised MISSION, Data API reconciliation is a Tier 2 cross-check that runs only if R is passed. Tier 1 validation instead relies on internal consistency:
+- every `OrdersMatched` has exactly one taker leg;
+- maker and taker legs balance;
+- V2 `fee` equals `FeeCharged.amount`.
 
 ## 3. Outcome definitions
 

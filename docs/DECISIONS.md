@@ -46,3 +46,40 @@ Format: **ID — date — phase — decision.** *Why:* rationale. *Rejected:* al
 - **D-019 — 2026-10-15 — P0 — Checkpoint C resolved (owner): release = code + paper only.** Code, rebuild scripts, the paper's tables and figures, and the dataset card. No raw data, **no derived panel**. Supersedes the open item in D-004 (3). MISSION §7's HF dataset is dropped. The dataset card documents rebuilding only.
 - **D-020 — 2026-10-15 — P0 — Checkpoint D resolved (owner): hybrid backfill (D-014) adopted.** Data API v2 per-market trades (taker + maker legs) for the analysis universe. On-chain receipts for a stratified sample give fees and treatment-date verification. Full `eth_getLogs` decoding runs only in ±2-day audit windows around rollout dates. Keyless `polygon.drpc.org`, no accounts. MISSION §3.1 `fills_onchain` becomes `fills_onchain_sample` + `fills_onchain_windows`. "≥ 99 % reconciliation" is measured on the sampled receipts vs Data API rows.
 - **D-021 — 2026-10-15 — P0 — Checkpoint E resolved (owner): D-013 design changes accepted** (market-level on-chain treatment; 30 Mar main cohort with 18 Feb and 6 Mar early cohorts; main window [−8w, +4w) around 30 Mar; 10 Jul sports dose-response; realised fee/notional intensity; taker rebates as a concurrent change). PREREGISTRATION.md (Phase 3) is written on this basis.
+
+### Revised MISSION (2026-10-15): Tier 1 / Tier 2 model, Checkpoint R, home-jurisdiction exclusion, private until B
+
+- **D-022 — 2026-10-15 — P0r — Checkpoint 0 answered (owner):** (a) paper #1 is the fee-design study; (b) §1 guardrails accepted in full; (c) the repository stays private until Checkpoint B. **Checkpoint R deferred** by the owner: Phases 1–4 run on Tier 1 only, and R is asked again before Phase 5.
+- **D-023 — 2026-10-15 — P0r — Repository made private.** Supersedes D-002. `thanatchon36/pmbook` was public from Phase 0 until today (commits `853f735`, `8850ac2`). Those commits contained the old MISSION, the scaffold and the recon docs, but no data, credentials or employer references. Copies may exist in caches or forks; this cannot be undone and is recorded for transparency. *Rejected:* deleting and recreating the repo (it does not remove external copies and loses the CI history).
+- **D-024 — 2026-10-15 — P0r — The Tier 2 L2 recorder is parked** untouched on the local branch `tier2-recorder` (commit `1dd92e0`). It holds the old Phase 1 work: Gamma/CLOB REST/WS sources, runner, writers and validate, with 46 tests. It returns only in Phase 5, after Checkpoint R, restructured into `pmbook.venue`. Its useful Tier-1-agnostic parts (Parquet writer, schema and validate scaffolding) may be cherry-picked in Phase 1. *Rejected:* discarding it; keeping it on main behind the flag (dead code on the critical path).
+- **D-025 — 2026-10-15 — P0r — Venue-hosted endpoints were contacted before the revised MISSION.** This happened in the original Phase 0 recon (RECON §1–§2) and in the parked recorder's development, before Checkpoint R existed. From this commit on, nothing in `main` can contact a venue host without `PMBOOK_TIER2=1`:
+  - `pmbook.venue` refuses to import.
+  - `PublicClient` refuses venue hosts.
+  - A static test confines venue hostnames to `pmbook/venue/`.
+  - `tests/conftest.py` blocks all sockets in tests.
+  - The `record` CLI exits with code 3.
+
+  Facts learned from those probes (D-007, D-009 and RECON §1–§2) are used only as background and Tier 2 design notes, never as data.
+- **D-026 — 2026-10-15 — P0r — Backfill architecture is Tier-1 only; supersedes D-014/D-020 (Data-API hybrid) and D-009 (CLOB price history).** Fills, fees, makers and takers come from a full `eth_getLogs` crawl of the exchange contracts over 2025-10-01 → present. Market identity comes from `TokenRegistered`, CTF and UMA events (RECON §7). Mid proxies are built from fills (MISSION §3.2), documented in METHODS. Checkpoints C and E outcomes (D-019, D-021) stand: the Terms analysis is unchanged, and the D-013 design stays, with treatment measured on chain. *Rejected:* keeping the Data API hybrid (Tier 2, so not allowed before R).
+- **D-027 — 2026-10-15 — P0r — Checkpoint D not re-triggered.** D-012 assumed a 100-block keyless limit. Re-probing (RECON §4b) found the Tenderly public gateway serving 3,000-block ranges at ~3.7 MB/s, keyless, capped at 20k results per call, with QuickNode public as fallback. Even ~1–2 TB of JSON is a multi-day sequential crawl, which is feasible. Etiquette rules:
+  - Sequential requests (one in flight per provider).
+  - Adaptive ranges.
+  - Back-off on errors.
+  - Descriptive User-Agent.
+  - Resumable checkpoints.
+  - Raw logs cached locally so nothing is fetched twice.
+
+  A Phase 1 pilot (±7 days around 2026-03-30, the densest period) measures real throughput. If the projected full crawl is over 14 days, or a provider objects or rate-limits persistently, Checkpoint D is raised then. Local disk has 884 GB free, against an estimated 100–250 GB as Parquet. *Rejected:* asking now (the evidence says it is feasible); signing up for a keyed free tier (accounts are the owner's call).
+- **D-028 — 2026-10-15 — P0r — Layout per MISSION §5:** `onchain/`, `reference/`, `labels/`, `filters/`, `venue/` (Tier 2), `schema/`, `validate/`, `panel/`, `micro/`, `analysis/`. The old `record/`, `sources/` and `backfill/` stubs are removed. The CLI adds `labels`; `record` is Tier 2-gated. JSON-RPC needs HTTP POST. Phase 1 adds a dedicated RPC client with a read-only method allowlist (`eth_getLogs`, `eth_getBlockByNumber`, `eth_blockNumber`, `eth_getTransactionReceipt`, `eth_chainId`, `eth_getCode`), and the guardrail scan is narrowed to allow POST only there.
+- **D-029 — 2026-10-15 — P0r — Venue-agnostic framing (§1.9):** the README, pyproject description and CITATION title describe prediction-market microstructure and fee design; the venue is named only in data/background sections. The `polymarket` keyword is removed from package metadata.
+- **D-030 — 2026-10-15 — P0r — Home-jurisdiction filter design (implemented in Phase 1):** the filter runs at ingestion on the UMA ancillary question text (plus negRisk event text). It uses a case-insensitive keyword list covering:
+  - the country, the currency, major cities and provinces;
+  - institutions (parliament, constitutional court, election commission, the central bank);
+  - major listed companies, political parties, and current and former PMs and party leaders;
+  - Thai-script detection.
+
+  A manual review covers all matches plus a random residual sample of 200 non-matched questions that mention Southeast Asia.
+  - **Committed:** the keyword list (`src/pmbook/filters/`) and an aggregate review summary in DECISIONS (counts, precision on the review sample, keywords added). No question text, ids or titles of excluded markets.
+  - **Local only, gitignored (`data/filters/`):** the excluded condition ids and the per-question review notes, because a released list would itself mention the excluded markets.
+
+  Markets whose question text is unavailable on chain are held back from the panel until classified. *Rejected:* a filter applied only at analysis time (the guardrail requires ingestion).

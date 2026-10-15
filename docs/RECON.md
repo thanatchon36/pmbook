@@ -1,5 +1,7 @@
 # Phase 0 recon: endpoints, limits, contracts, terms
 
+> **Tier note (revised MISSION, D-022 to D-030).** §1–§2 describe venue-hosted APIs probed during the original Phase 0, before the revised MISSION introduced Checkpoint R. They are kept as reference for Tier 2 (Phase 5). Under Checkpoint R nothing in pmbook contacts them until the author confirms R. §3–§5 and §7–§8 are Tier 1.
+
 Probed 2026-10-15 with unauthenticated GETs (UA `pmbook/0.0.1 research; github.com/thanatchon36/pmbook`), sent sequentially with ≥ 0.5 s spacing. Probe scripts: `scripts/recon/`.
 
 ## 1. Polymarket REST APIs
@@ -82,6 +84,20 @@ Date → block map (binary search on block timestamps): 2025-10-01 = 77,106,032;
 
 Window 2025-10-01 → 2026-10-15 ≈ **18.4 M blocks → ≥ 184 k requests** at 100 blocks each, and on the order of **1–2.5 billion `OrderFilled` logs**. That is roughly 1–2 TB of JSON transfer and ~100–250 GB as Parquet. A large share comes from short-duration crypto up/down markets, which §4 excludes, but `tokenId` is not an indexed topic, so they cannot be filtered server-side. This exceeds what a keyless public endpoint can reasonably be asked to serve. It triggers **Checkpoint D** (see DECISIONS D-012).
 
+## 4b. Keyless archive RPC: revised capacity (Phase 0r, 2026-10-15)
+
+Re-probed with one `eth_getLogs` call per range (V1 exchanges, `OrdersMatched` topic, starting at block 77,106,032 = 2025-10-01), spaced ≥ 1 s apart:
+
+| Endpoint | 355 blocks | 1,000 blocks | 3,000 blocks | 10,000 blocks |
+|---|---|---|---|---|
+| `gateway.tenderly.co/public/polygon` | OK | 6,520 logs, 5.4 MB, 2.4 s | 18,000 logs, 14.9 MB, 4.0 s | error: "more than 20000 results" (a result cap, not a range cap) |
+| `rpc-mainnet.matic.quiknode.pro` | OK | 6.8 s | 13.4 s | timeout (30 s) |
+| `polygon.drpc.org` | 400 (> 100 blocks) | — | — | — |
+| `1rpc.io/matic` | ≤ 50 blocks | — | — | — |
+| blastapi, blockpi, nodies, onfinality, omniatech, llamarpc, meowrpc | discontinued, need a key, or no response | | | |
+
+The Tenderly public gateway serves about 3–4 MB/s per sequential request with a 20,000-result cap per call. Adaptive range splitting (halve the range on the cap error) makes the full-window crawl a few days of polite, sequential, cached requests instead of an infeasible load. QuickNode's public endpoint is the fallback and dRPC the last resort. The crawl is resumable by block range, so it can be paused. A Phase 1 pilot measures real throughput before the full window runs. Checkpoint D is therefore not triggered (D-027).
+
 ## 5. Reference data
 
 - Binance public klines: `https://api.binance.com/api/v3/klines` and the market-data-only mirror `https://data-api.binance.vision/api/v3/klines` both return 1-minute BTCUSDT for 2025-10-01, no key. pmbook uses the `data-api.binance.vision` mirror.
@@ -98,3 +114,24 @@ Polymarket.com Terms of Use, **effective 11 Aug 2026**, served as a Google Doc e
 - Trading is not permitted for Restricted Persons (list includes the US, the UK, Thailand and others). Content Features remain usable everywhere. pmbook never trades.
 
 robots.txt: `polymarket.com` allows all (`Disallow:` empty). The API hosts have no robots.txt (404).
+
+## 7. Market identity from chain (Tier 1)
+
+Scanned with all-address `eth_getLogs` over 2,000-block windows at 2025-10-01, 2026-03-30 and 2026-10-14:
+
+| Event | Emitter(s) seen | Gives |
+|---|---|---|
+| `TokenRegistered(uint256 indexed token0, uint256 indexed token1, bytes32 indexed conditionId)` | V1 CTF Exchange `0x4bfb…982e` (still emitting in Oct 2026); V1 NegRisk Exchange `0xc5d5…f80a`; unidentified: `0x7bdd9ee2…1253`, `0x9acfcb9a…388d`, `0xe0cb7356…5298`, `0xa06be29a…b595`, `0x578b69bb…ace5`, `0xd9292074…8d25`, `0x87b81fd5…08d1` | outcome token id ↔ condition id |
+| `ConditionPreparation(bytes32 indexed conditionId, address indexed oracle, bytes32 indexed questionId, uint256 outcomeSlotCount)` | Conditional Tokens `0x4d97…6045`; unidentified `0x3e0186fd…d563`, `0x53ab2e11…11f4`, `0xa86e521d…c0b6`, `0x049f6918…af9f` | condition ↔ oracle, question id |
+| `ConditionResolution(…, uint256[] payoutNumerators)` | Conditional Tokens; same unidentified set | resolution outcome and time |
+| `QuestionInitialized(bytes32 indexed questionID, uint256 indexed requestTimestamp, address indexed creator, bytes ancillaryData, address rewardToken, uint256 reward, uint256 proposalBond)` | UMA CTF adapters `0x6507…f2a7`, `0x69c4…5f24`, `0x2f5e…aa9d` | **question text**: `ancillaryData` is UTF-8 `q: title: …, description: …` |
+| `QuestionResolved(bytes32 indexed questionID, int256 settledPrice, uint256[] payouts)` | same adapters, plus `0x056e…a297` | resolution |
+| `QuestionPrepared` / `MarketPrepared` | NegRisk Adapter `0xd91e…5296` | negRisk event grouping, with its own data payload |
+
+Question text is therefore available on chain for UMA-resolved markets. That covers the home-jurisdiction filter (§1.5) and category classification (§3.1).
+
+**Open items for Phase 1 (contract census):**
+- Identify the unidentified emitters with `eth_getCode` and ABI or selector matching, plus public repositories. No HTML scraping.
+- Confirm which contracts emit V2 `OrderFilled` after 2026-04-28.
+- Explain why V1 `TokenRegistered` continues after the migration.
+- Measure the coverage of the question-text join: token → condition → questionId → ancillary data.

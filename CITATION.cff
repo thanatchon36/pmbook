@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use pmbook, please cite it as below."
-title: "pmbook: a read-only research toolkit for prediction-market order books and fills"
+title: "pmbook: an open research toolkit for prediction-market microstructure"
 authors:
   - family-names: Chongmankhong
     given-names: Thanatchon

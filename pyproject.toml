@@ -1,13 +1,13 @@
 [project]
 name = "pmbook"
 version = "0.0.1"
-description = "Read-only research toolkit for prediction-market order books, on-chain fills and fees (Polymarket)."
+description = "Venue-agnostic research toolkit for prediction-market microstructure and fee design, built on public chain data."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{ name = "Thanatchon Chongmankhong" }]
-keywords = ["prediction markets", "market microstructure", "order book", "polymarket", "research"]
+keywords = ["prediction markets", "market microstructure", "fee design", "market quality", "research"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",

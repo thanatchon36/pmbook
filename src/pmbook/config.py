@@ -8,13 +8,28 @@ from pmbook import __version__
 
 USER_AGENT = f"pmbook/{__version__} research; github.com/thanatchon36/pmbook"
 
-# Public, unauthenticated endpoints verified in Phase 0 (docs/RECON.md).
-GAMMA_URL = "https://gamma-api.polymarket.com"
-CLOB_URL = "https://clob.polymarket.com"
-CLOB_WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
-DATA_API_URL = "https://data-api.polymarket.com"
+# Tier 1 endpoints (MISSION §3.1): general-purpose infrastructure, never venue-operated.
+# Keyless archive RPCs verified in docs/RECON.md §4.
+POLYGON_RPC_URLS = (
+    "https://gateway.tenderly.co/public/polygon",
+    "https://rpc-mainnet.matic.quiknode.pro",
+    "https://polygon.drpc.org",
+)
 BINANCE_URL = "https://data-api.binance.vision"
-POLYGON_RPC_URL = "https://polygon.drpc.org"
+
+# Registrable domains operated by the venue (MISSION §1.4). Hosts under these are Tier 2:
+# contacted only when PMBOOK_TIER2=1, i.e. after Checkpoint R. Their URLs live in pmbook.venue.
+VENUE_DOMAINS = frozenset({"polymarket.com"})
+
+
+class Tier2DisabledError(RuntimeError):
+    """A venue-hosted endpoint was requested without ``PMBOOK_TIER2=1`` (MISSION §1.4, §9)."""
+
+
+def is_venue_host(host: str) -> bool:
+    """True if ``host`` is, or is a subdomain of, a venue-operated domain."""
+    host = host.lower().rstrip(".")
+    return any(host == d or host.endswith("." + d) for d in VENUE_DOMAINS)
 
 
 class Settings(BaseSettings):
@@ -22,8 +37,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="PMBOOK_", env_file=".env", extra="ignore")
 
+    tier2: bool = False  # Checkpoint R gate; see MISSION §1.4 and §9
     data_dir: Path = Path("data")
-    polygon_rpc_url: str = POLYGON_RPC_URL
+    polygon_rpc_urls: tuple[str, ...] = POLYGON_RPC_URLS
     http_timeout_s: float = 30.0
     http_max_retries: int = 6
     http_backoff_base_s: float = 1.0
